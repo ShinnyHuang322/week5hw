@@ -1,0 +1,1647 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>命運行李箱 DestiPack - 全球百大城市隨機旅遊抽籤</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', '"Noto Sans TC"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              400: '#fb923c',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+            },
+            retro: {
+              leather: '#845330',
+              buckle: '#eab308',
+              tag: '#0284c7'
+            }
+          },
+          animation: {
+            'float-idle': 'idleFloat 3.5s ease-in-out infinite',
+            'shake-hard': 'shakeLuggage 0.1s linear infinite',
+            'pop-reveal': 'popReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+          },
+          keyframes: {
+            idleFloat: {
+              '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+              '50%': { transform: 'translateY(-8px) rotate(0.8deg)' }
+            },
+            shakeLuggage: {
+              '0%': { transform: 'translate(2px, 1px) rotate(1deg) scale(1.02)' },
+              '25%': { transform: 'translate(-2px, -2px) rotate(-1.5deg)' },
+              '50%': { transform: 'translate(-3px, 0px) rotate(1.2deg)' },
+              '75%': { transform: 'translate(3px, 2px) rotate(-1deg)' },
+              '100%': { transform: 'translate(1px, -1px) rotate(0.8deg)' }
+            },
+            popReveal: {
+              '0%': { opacity: '0', transform: 'scale(0.9) translateY(24px)' },
+              '100%': { opacity: '1', transform: 'scale(1) translateY(0)' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* 擬真行李箱與質感外觀 */
+    .suitcase-body {
+      background: linear-gradient(135deg, #f97316 0%, #ea580c 60%, #c2410c 100%);
+      box-shadow: 0 25px 50px -12px rgba(234, 88, 12, 0.35), inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 min-h-screen selection:bg-brand-500 selection:text-white pb-20">
+
+  <!-- 背景氛圍光效 -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10 opacity-40">
+    <div class="absolute -top-32 -left-32 w-96 h-96 bg-brand-500/20 rounded-full blur-3xl"></div>
+    <div class="absolute top-1/2 -right-32 w-96 h-96 bg-indigo-500/15 rounded-full blur-3xl"></div>
+    <div class="absolute -bottom-32 left-1/3 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl"></div>
+  </div>
+
+  <!-- 頂部導航 -->
+  <header class="border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-400 flex items-center justify-center shadow-lg shadow-brand-500/20">
+          <i data-lucide="luggage" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-orange-400 via-amber-200 to-yellow-400">
+            命運行李箱 DestiPack
+          </h1>
+          <p class="text-xs text-slate-400 font-medium">全球百大城市隨機行前抽籤</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 text-xs text-slate-400 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-full">
+        <i data-lucide="database" class="w-3.5 h-3.5 text-brand-400"></i>
+        <span>收錄城市：<strong class="text-brand-400 font-bold" id="totalCityCounter">100+</strong> 座</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主容器 -->
+  <main class="max-w-6xl mx-auto px-4 pt-8">
+
+    <!-- 標題區域 -->
+    <div class="text-center max-w-2xl mx-auto mb-8">
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-500/10 text-brand-400 border border-brand-500/20 mb-3">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+        <span>聚會團建 / 情侶出遊 / 猶豫不決拯救者</span>
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-3">
+        設定條件，把下一站交給命運！
+      </h2>
+      <p class="text-slate-400 text-sm leading-relaxed">
+        從全球百大觀光城市、東北亞人氣都會到台灣寶島特色縣市，按下「命運開箱」，解鎖你們的專屬旅遊地與冒險任務！
+      </p>
+    </div>
+
+    <!-- 兩欄佈局：左側篩選面板，右側行李箱互動舞台 -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      <!-- 【模組 A：條件與避雷篩選面板】 (佔 5 欄) -->
+      <section class="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-2xl backdrop-blur-xl">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-5">
+          <div class="flex items-center gap-2">
+            <i data-lucide="sliders-horizontal" class="w-5 h-5 text-brand-400"></i>
+            <h3 class="font-bold text-base text-slate-100">篩選條件與避雷標籤</h3>
+          </div>
+          <button id="resetFiltersBtn" class="text-xs text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> 重設
+          </button>
+        </div>
+
+        <!-- 1. 範圍選擇 -->
+        <div class="mb-5">
+          <label class="block text-xs font-semibold text-slate-400 mb-2 tracking-wider uppercase">旅遊範圍</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" data-range="any" class="filter-range-btn active-range py-2.5 px-3 rounded-xl border text-xs font-semibold flex flex-col items-center gap-1 transition-all">
+              <i data-lucide="globe" class="w-4 h-4"></i>
+              <span>老天決定</span>
+            </button>
+            <button type="button" data-range="domestic" class="filter-range-btn py-2.5 px-3 rounded-xl border text-xs font-semibold flex flex-col items-center gap-1 transition-all">
+              <i data-lucide="map-pin" class="w-4 h-4"></i>
+              <span>台灣城市</span>
+            </button>
+            <button type="button" data-range="international" class="filter-range-btn py-2.5 px-3 rounded-xl border text-xs font-semibold flex flex-col items-center gap-1 transition-all">
+              <i data-lucide="plane" class="w-4 h-4"></i>
+              <span>全球海外</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. 天數規劃 -->
+        <div class="mb-5">
+          <label class="block text-xs font-semibold text-slate-400 mb-2 tracking-wider uppercase">預計天數</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" data-duration="short" class="filter-duration-btn py-2.5 px-2 rounded-xl border text-xs font-medium text-center transition-all">
+              快閃週末<br><span class="text-[10px] text-slate-400">1-2 天</span>
+            </button>
+            <button type="button" data-duration="medium" class="filter-duration-btn active-duration py-2.5 px-2 rounded-xl border text-xs font-medium text-center transition-all">
+              連假首選<br><span class="text-[10px] text-slate-400">3-5 天</span>
+            </button>
+            <button type="button" data-duration="long" class="filter-duration-btn py-2.5 px-2 rounded-xl border text-xs font-medium text-center transition-all">
+              深度放空<br><span class="text-[10px] text-slate-400">6 天以上</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. 避雷開關 (強制剔除) -->
+        <div class="mb-5">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs font-semibold text-slate-400 tracking-wider uppercase">避雷清單（命中條件強制排除）</label>
+            <span class="text-[10px] text-rose-400 font-medium">多選排除</span>
+          </div>
+          <div class="space-y-2">
+            <!-- 爬山 -->
+            <label class="flex items-center justify-between p-2.5 rounded-xl border border-slate-800 bg-slate-950/60 hover:border-slate-700 cursor-pointer transition-colors">
+              <div class="flex items-center gap-2.5">
+                <span class="text-base">🥾</span>
+                <span class="text-xs font-medium text-slate-200">拒絕爬山階梯 (徒步高地)</span>
+              </div>
+              <input type="checkbox" value="mountain" class="avoid-tag-checkbox w-4 h-4 accent-brand-500 rounded bg-slate-900 border-slate-700">
+            </label>
+            <!-- 暴曬 -->
+            <label class="flex items-center justify-between p-2.5 rounded-xl border border-slate-800 bg-slate-950/60 hover:border-slate-700 cursor-pointer transition-colors">
+              <div class="flex items-center gap-2.5">
+                <span class="text-base">☀️</span>
+                <span class="text-xs font-medium text-slate-200">拒絕暴曬流汗 (熱帶強陽光)</span>
+              </div>
+              <input type="checkbox" value="heat" class="avoid-tag-checkbox w-4 h-4 accent-brand-500 rounded bg-slate-900 border-slate-700">
+            </label>
+            <!-- 人潮 -->
+            <label class="flex items-center justify-between p-2.5 rounded-xl border border-slate-800 bg-slate-950/60 hover:border-slate-700 cursor-pointer transition-colors">
+              <div class="flex items-center gap-2.5">
+                <span class="text-base">👥</span>
+                <span class="text-xs font-medium text-slate-200">拒絕人擠人 (過度觀光排隊)</span>
+              </div>
+              <input type="checkbox" value="crowd" class="avoid-tag-checkbox w-4 h-4 accent-brand-500 rounded bg-slate-900 border-slate-700">
+            </label>
+            <!-- 重口味/辛香料 -->
+            <label class="flex items-center justify-between p-2.5 rounded-xl border border-slate-800 bg-slate-950/60 hover:border-slate-700 cursor-pointer transition-colors">
+              <div class="flex items-center gap-2.5">
+                <span class="text-base">🌿</span>
+                <span class="text-xs font-medium text-slate-200">拒絕重香料/重辣重甜</span>
+              </div>
+              <input type="checkbox" value="heavy_flavor" class="avoid-tag-checkbox w-4 h-4 accent-brand-500 rounded bg-slate-900 border-slate-700">
+            </label>
+            <!-- 長途拉車或長途飛行 -->
+            <label class="flex items-center justify-between p-2.5 rounded-xl border border-slate-800 bg-slate-950/60 hover:border-slate-700 cursor-pointer transition-colors">
+              <div class="flex items-center gap-2.5">
+                <span class="text-base">🛫</span>
+                <span class="text-xs font-medium text-slate-200">拒絕長途飛行/拉車 (>5小時)</span>
+              </div>
+              <input type="checkbox" value="long_transit" class="avoid-tag-checkbox w-4 h-4 accent-brand-500 rounded bg-slate-900 border-slate-700">
+            </label>
+          </div>
+        </div>
+
+        <!-- 符合母體實時計算 -->
+        <div class="bg-slate-950/80 rounded-2xl p-3 border border-slate-800 flex items-center justify-between text-xs">
+          <span class="text-slate-400">當前符合條件城市池：</span>
+          <span class="font-bold text-brand-400 text-sm"><span id="matchPoolCount">0</span> 座城市</span>
+        </div>
+      </section>
+
+
+      <!-- 【模組 B & C：行李箱互動舞台與結果展示】 (佔 7 欄) -->
+      <section class="lg:col-span-7 flex flex-col items-center">
+
+        <!-- 舞台展示區 -->
+        <div class="w-full bg-slate-900/60 border border-slate-800/80 rounded-3xl p-6 sm:p-8 flex flex-col items-center justify-center min-h-[460px] relative overflow-hidden backdrop-blur-sm">
+
+          <!-- 抽籤機率/狀態徽章 -->
+          <div class="absolute top-5 left-5 z-20 flex items-center gap-2">
+            <span id="chanceBadge" class="bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1.5 shadow-sm">
+              <i data-lucide="flame" class="w-3.5 h-3.5"></i>
+              <span>不服機會：<span id="chanceCounterText">3 / 3</span></span>
+            </span>
+          </div>
+
+          <!-- 行李箱本體 (CSS 擬真構建) -->
+          <div id="suitcaseWrapper" class="relative my-4 cursor-pointer group transition-all duration-300">
+            
+            <!-- 行李箱伸縮拉桿 -->
+            <div class="w-24 h-12 border-4 border-slate-600 border-b-0 rounded-t-xl mx-auto -mb-1 flex justify-center">
+              <div class="w-16 h-2 bg-slate-700 rounded-t-md"></div>
+            </div>
+
+            <!-- 箱體主結構 -->
+            <div id="suitcaseBody" class="w-64 sm:w-72 h-48 sm:h-52 suitcase-body rounded-3xl relative p-4 flex flex-col justify-between transition-transform duration-300 shadow-2xl animate-float-idle">
+              
+              <!-- 上蓋紋理與防撞金屬包角 -->
+              <div class="absolute -top-1.5 -left-1.5 w-7 h-7 bg-amber-400/90 rounded-tl-xl border border-amber-200"></div>
+              <div class="absolute -top-1.5 -right-1.5 w-7 h-7 bg-amber-400/90 rounded-tr-xl border border-amber-200"></div>
+              <div class="absolute -bottom-1.5 -left-1.5 w-7 h-7 bg-amber-400/90 rounded-bl-xl border border-amber-200"></div>
+              <div class="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-amber-400/90 rounded-br-xl border border-amber-200"></div>
+
+              <!-- 垂直加固皮帶與復古金屬鎖扣 -->
+              <div class="absolute top-0 bottom-0 left-12 w-3 bg-black/25 flex flex-col justify-center items-center">
+                <div class="w-5 h-4 bg-amber-400 rounded-sm border border-amber-600 shadow"></div>
+              </div>
+              <div class="absolute top-0 bottom-0 right-12 w-3 bg-black/25 flex flex-col justify-center items-center">
+                <div class="w-5 h-4 bg-amber-400 rounded-sm border border-amber-600 shadow"></div>
+              </div>
+
+              <!-- 裝飾旅行貼紙 -->
+              <div class="relative z-10 flex justify-between items-start pointer-events-none">
+                <div class="bg-white/95 text-slate-800 text-[10px] font-black px-2 py-0.5 rounded shadow -rotate-12 border border-slate-200 tracking-tighter">
+                  ✈ DESTIPACK
+                </div>
+                <div class="w-7 h-7 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center rotate-6 shadow border border-white">
+                  TOP 100
+                </div>
+              </div>
+
+              <!-- 中央皮革提把與品牌掛牌 -->
+              <div class="relative z-10 flex items-center justify-center">
+                <div class="w-20 h-5 bg-amber-950/80 rounded-full border border-amber-600/40 shadow-inner flex items-center justify-center">
+                  <span class="text-[9px] font-extrabold tracking-widest text-amber-200/90">LUCKY</span>
+                </div>
+              </div>
+
+              <!-- 底部腳輪與提示文字 -->
+              <div class="relative z-10 text-center">
+                <p id="suitcaseHint" class="text-xs font-bold text-white/90 drop-shadow">點擊開啟命運</p>
+              </div>
+
+            </div>
+
+            <!-- 兩側滑輪 -->
+            <div class="flex justify-between px-8 -mt-2">
+              <div class="w-5 h-3 bg-slate-800 rounded-b-md shadow"></div>
+              <div class="w-5 h-3 bg-slate-800 rounded-b-md shadow"></div>
+            </div>
+
+          </div>
+
+          <!-- 開箱按鈕 -->
+          <div class="mt-4 flex flex-col items-center gap-2">
+            <button id="drawBtn" class="group relative px-8 py-3.5 bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-600 hover:to-amber-600 text-white font-extrabold text-base rounded-2xl shadow-xl shadow-brand-500/25 transition-all transform active:scale-95 flex items-center gap-2.5">
+              <i data-lucide="sparkle" class="w-5 h-5 transition-transform group-hover:rotate-45"></i>
+              <span id="drawBtnText">命運開箱 (Spin DestiPack)</span>
+            </button>
+            <p id="exhaustedTip" class="text-xs text-rose-400 font-semibold hidden animate-bounce">
+              命運已定，別再逃避了，現在就去訂票！✈️
+            </p>
+          </div>
+
+          <!-- 【模組 C：結果展示卡片】（抽籤後動態展開） -->
+          <div id="resultCard" class="hidden w-full max-w-xl mt-6 bg-slate-950 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl animate-pop-reveal">
+            <!-- 城市大圖與頂部狀態 -->
+            <div class="relative h-56 sm:h-64 w-full overflow-hidden bg-slate-900">
+              <img id="resImage" src="" alt="城市風景" class="w-full h-full object-cover transition-transform duration-700 hover:scale-105" loading="lazy" />
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent"></div>
+              
+              <!-- 區域膠囊 -->
+              <div class="absolute top-4 left-4 flex gap-2">
+                <span id="resRegionBadge" class="bg-black/60 backdrop-blur-md border border-white/20 text-white text-[11px] font-bold px-3 py-1 rounded-full">
+                  區域
+                </span>
+                <span id="resDurationBadge" class="bg-brand-500/80 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1 rounded-full">
+                  建議天數
+                </span>
+              </div>
+
+              <!-- 城市標題與副標 -->
+              <div class="absolute bottom-4 left-4 right-4">
+                <h3 id="resCityName" class="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow-md">
+                  城市名稱
+                </h3>
+                <p id="resSubtitle" class="text-sm font-medium text-amber-300 drop-shadow">
+                  城市副標
+                </p>
+              </div>
+            </div>
+
+            <!-- 卡片詳細內容區 -->
+            <div class="p-5 sm:p-6 space-y-4">
+              
+              <!-- 特色標籤 -->
+              <div id="resTags" class="flex flex-wrap gap-1.5">
+                <!-- 動態注入標籤 -->
+              </div>
+
+              <!-- 兩欄特色：美食與亮點 -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <!-- 必吃美食 -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5">
+                  <div class="flex items-center gap-1.5 text-xs font-bold text-amber-400 mb-2">
+                    <i data-lucide="utensils" class="w-3.5 h-3.5"></i> 必吃靈魂美食
+                  </div>
+                  <ul id="resFoods" class="text-xs text-slate-300 space-y-1 font-medium list-disc list-inside">
+                    <!-- 動態美食 -->
+                  </ul>
+                </div>
+
+                <!-- 核心亮點體驗 -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5">
+                  <div class="flex items-center gap-1.5 text-xs font-bold text-sky-400 mb-2">
+                    <i data-lucide="compass" class="w-3.5 h-3.5"></i> 核心景點體驗
+                  </div>
+                  <ul id="resHighlights" class="text-xs text-slate-300 space-y-1 font-medium list-disc list-inside">
+                    <!-- 動態亮點 -->
+                  </ul>
+                </div>
+              </div>
+
+              <!-- 聚會專屬任務 (Party Dare) -->
+              <div class="bg-gradient-to-r from-rose-950/40 to-amber-950/30 border border-rose-500/30 rounded-2xl p-3.5 flex items-start gap-3">
+                <div class="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <i data-lucide="dice-5" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-rose-300 uppercase tracking-wider mb-0.5">聚會專屬任務 / 現場懲罰</div>
+                  <p id="resPartyDare" class="text-xs text-slate-200 leading-relaxed font-medium">
+                    抽籤者必須...
+                  </p>
+                </div>
+              </div>
+
+              <!-- 底部操作按鈕：不服再抽 & 分享 -->
+              <div class="pt-2 flex items-center gap-3">
+                <button id="rerollBtn" class="flex-1 py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
+                  <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                  <span>不服再抽 (<span id="rerollCounterText">3</span>)</span>
+                </button>
+                <button id="copyShareBtn" class="py-3 px-4 rounded-xl bg-brand-600/20 hover:bg-brand-600/30 text-brand-300 font-bold text-xs flex items-center justify-center gap-1.5 border border-brand-500/30 transition-all">
+                  <i data-lucide="share-2" class="w-4 h-4"></i>
+                  <span>複製結果</span>
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- 提示浮動 Toast -->
+  <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 border border-slate-700 text-white text-xs px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+    <span id="toastMsg">已複製到剪貼簿！</span>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. 全球百大級旅遊城市龐大資料庫 (100+ 知名大國觀光城市與台灣縣市)
+    // =========================================================================
+    const CITIES_DATABASE = [
+      // --- 台灣國內各大城市 (12座) ---
+      {
+        id: "tw-taipei",
+        name: "台北 Taipei",
+        country: "台灣",
+        region: "domestic",
+        duration: "short",
+        avoidTags: ["crowd"],
+        tags: ["#都會微醺", "#捷運可達", "#米其林夜市"],
+        image: "https://images.unsplash.com/photo-1508248467877-aec1b08de376?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "當代潮流與不夜城小吃狂想",
+        foods: ["饒河夜市胡椒餅", "阜杭豆漿厚餅夾蛋", "東區牛肉麵與酒吧"],
+        highlights: ["走讀大稻埕復古選物店", "台北101俯瞰高空夜景", "北投溫泉舒壓泡湯"],
+        dare: "抽籤者現場必須立刻請在場每人一杯手搖飲或咖啡！"
+      },
+      {
+        id: "tw-tainan",
+        name: "台南 Tainan",
+        country: "台灣",
+        region: "domestic",
+        duration: "short",
+        avoidTags: ["heat", "heavy_flavor"],
+        tags: ["#美食無底洞", "#府城古蹟", "#老宅咖啡"],
+        image: "https://images.unsplash.com/photo-1584467541268-b040f83be3fd?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "台灣歷史起源與甜蜜美食之都",
+        foods: ["溫體牛肉湯配肉燥飯", "小卷米粉加甜甜辣醬", "古早味布丁與白糖粿"],
+        highlights: ["神農街夜拍懷舊燈籠", "奇美博物館歐風漫步", "安平古堡與夕陽四草綠道"],
+        dare: "到台南第一餐，抽籤者負責排隊跑腿拿所有小吃號碼牌！"
+      },
+      {
+        id: "tw-kaohsiung",
+        name: "高雄 Kaohsiung",
+        country: "台灣",
+        region: "domestic",
+        duration: "short",
+        avoidTags: ["heat"],
+        tags: ["#海港港都", "#駁二藝術", "#輕軌漫遊"],
+        image: "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "大船入港與陽光普照的藝術港都",
+        foods: ["丹丹漢堡炸雞地瓜條", "旗津烤小卷與海產", "老江紅茶牛奶搭烤土司"],
+        highlights: ["搭輕軌巡遊亞洲新灣區", "駁二藝術特區看展逛市集", "旗津渡輪吹海風看大船"],
+        dare: "全員去駁二拍照時，抽籤者必須擔任專屬攝影師拍滿 50 張！"
+      },
+      {
+        id: "tw-taichung",
+        name: "台中 Taichung",
+        country: "台灣",
+        region: "domestic",
+        duration: "short",
+        avoidTags: [],
+        tags: ["#空間霸氣餐廳", "#審計新村", "#文青街區"],
+        image: "https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "全台最舒爽氣候與氣派咖啡聚落",
+        foods: ["逢甲夜市地瓜球與雞排", "公益路頂級燒肉", "宮原眼科巨無霸冰淇淋"],
+        highlights: ["審計新村文創小店尋寶", "高美濕地浪漫風車夕照", "勤美綠園道草地野餐放空"],
+        dare: "到台中吃燒肉時，抽籤者負責整場烤肉不能烤焦任何一片！"
+      },
+      {
+        id: "tw-yilan",
+        name: "宜蘭羅東 Yilan",
+        country: "台灣",
+        region: "domestic",
+        duration: "short",
+        avoidTags: [],
+        tags: ["#溫泉放鬆", "#田園包棟", "#快閃逃離"],
+        image: "https://images.unsplash.com/photo-1571407970349-bc81e7e96d47?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "穿過雪隧就到的慢活後花園",
+        foods: ["羅東夜市三星蔥油派", "當歸羊肉湯配蒜味肉羹", "礁溪溫泉拉麵"],
+        highlights: ["礁溪溫泉飯店泡湯放鬆", "羅東夜市吃遍在地排隊攤", "張美阿嬤農場看水豚君"],
+        dare: "今晚買羅東夜市消夜的零頭全由抽籤者買單！"
+      },
+      {
+        id: "tw-hualien",
+        name: "花蓮 Hualien",
+        country: "台灣",
+        region: "domestic",
+        duration: "medium",
+        avoidTags: ["mountain"],
+        tags: ["#太平洋藍", "#縱谷海岸", "#舒壓深呼吸"],
+        image: "https://images.unsplash.com/photo-1509233725247-49e657c54213?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "壯闊山海與令人屏息的蔚藍大洋",
+        foods: ["炸彈蔥油餅加爆漿半熟蛋", "公正包子與扁食湯", "玉里麵配香濃紅茶"],
+        highlights: ["七星潭疊鵝卵石吹海風", "清水斷崖眺望湛藍懸崖", "海邊咖啡館發呆一整下午"],
+        dare: "在七星潭海岸必須疊出一座超過 7 顆石頭的高塔才準離開！"
+      },
+      {
+        id: "tw-taitung",
+        name: "台東 Taitung",
+        country: "台灣",
+        region: "domestic",
+        duration: "medium",
+        avoidTags: ["long_transit", "heat"],
+        tags: ["#慢活淨土", "#伯朗大道", "#星空銀河"],
+        image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "放慢時間腳步的太平洋風之鄉",
+        foods: ["池上木片鐵路便當", "卑南豬血湯配糯米腸", "東河包子與初鹿鮮奶霜淇淋"],
+        highlights: ["池上伯朗大道騎單車迎風", "鐵花村聽原民好聲音演唱", "三仙台跨海步橋看海浪"],
+        dare: "旅程中抽籤者在路上一律不準看手機超過 15 分鐘！"
+      },
+      {
+        id: "tw-chiayi",
+        name: "嘉義 Chiayi",
+        country: "台灣",
+        region: "domestic",
+        duration: "short",
+        avoidTags: [],
+        tags: ["#火雞肉飯大戰", "#木都老屋", "#阿里山門戶"],
+        image: "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "飄著檜木香與雞肉飯油香的悠閒小城",
+        foods: ["油蔥爆香正宗火雞肉飯", "文化路御香屋葡萄柚綠", "林聰明砂鍋魚頭特製沙茶湯"],
+        highlights: ["檜意森活村體驗日式老木屋", "文化路夜市深夜排隊開箱", "嘉義市立美術館美拍巡禮"],
+        dare: "抽籤者今天每一餐都必須跟同伴點不同家的火雞肉飯做評比！"
+      },
+      {
+        id: "tw-keelung",
+        name: "基隆 Keelung",
+        country: "台灣",
+        region: "domestic",
+        duration: "short",
+        avoidTags: ["crowd"],
+        tags: ["#廟口夜市", "#雨都老海港", "#彩色屋咖啡"],
+        image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "充滿港灣市井煙火氣的雨都老城",
+        foods: ["廟口鼎邊趖配天婦羅", "泡泡冰與一口吃香腸", "炭烤三明治配古早咖啡"],
+        highlights: ["正濱漁港彩色屋拍網美大片", "潮境公園看無敵海天一色", "基隆廟口從頭吃到尾"],
+        dare: "在基隆廟口夜市抽籤者要負責端所有熱湯食物！"
+      },
+      {
+        id: "tw-hsinchu",
+        name: "新竹 Hsinchu",
+        country: "台灣",
+        region: "domestic",
+        duration: "short",
+        avoidTags: [],
+        tags: ["#城隍廟美食", "#玻璃工藝", "#護城河散策"],
+        image: "https://images.unsplash.com/photo-1477959858617-67f30bc75b82?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "風城底蘊與傳統廟埕美味集合",
+        foods: ["城隍廟爆汁紅糟肉圓", "新竹貢丸米粉湯", "水潤餅與古早味冬瓜仙草"],
+        highlights: ["城隍廟周圍老攤通吃", "護城河綠意步道慢步散策", "新竹市立動物園超親近看動物"],
+        dare: "抽籤者現場必須講出三個新竹不是美食沙漠的強大理由！"
+      },
+      {
+        id: "tw-penghu",
+        name: "澎湖馬公 Magong",
+        country: "台灣",
+        region: "domestic",
+        duration: "medium",
+        avoidTags: ["heat"],
+        tags: ["#海島跳島", "#澎湖花火", "#仙人掌冰"],
+        image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "玄武岩奇景與無敵碧海藍天菊島",
+        foods: ["仙人掌鮮豔酸甜冰淇淋", "小管麵線配鮮蚵生蠔", "黑糖糕與澎湖丁香魚花生"],
+        highlights: ["大菓葉玄武岩奇岩留影", "奎壁山摩西分海踏浪奇觀", "山水沙灘躺在躺椅放空喝調酒"],
+        dare: "在海邊吃小管時，抽籤者負責替所有人剝蝦開蚵仔！"
+      },
+      {
+        id: "tw-kinmen",
+        name: "金門城 Kinmen",
+        country: "台灣",
+        region: "domestic",
+        duration: "medium",
+        avoidTags: ["long_transit"],
+        tags: ["#洋樓聚落", "#戰地坑道", "#風獅爺尋寶"],
+        image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "閩南大厝古色古香與歷史陳釀聚落",
+        foods: ["金門高粱嗆蟹", "廣東粥配剛炸酥脆油條", "閩式燒餅與貢糖牛肉乾"],
+        highlights: ["翟山坑道感受水上倒影震撼", "得月樓水頭聚落拍古洋樓", "尋找散落在島上的超萌風獅爺"],
+        dare: "晚上聚會抽籤者必須帶頭喝一杯 58 度高粱酒（或果汁一口乾）！"
+      },
+
+      // --- 東北亞指標城市 (日本、韓國) ---
+      {
+        id: "jp-tokyo",
+        name: "東京 Tokyo",
+        country: "日本",
+        region: "international",
+        duration: "medium",
+        avoidTags: ["crowd"],
+        tags: ["#全球頂級都會", "#米其林之都", "#潮流購物"],
+        image: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "走在世界最前端的霓虹極致都會",
+        foods: ["築地/豐洲頂級黑鮪魚握壽司", "濃郁豚骨沾麵拉麵", "銀座精緻法式甜點千層派"],
+        highlights: ["澀谷十字路口人潮俯瞰打卡", "新宿與下北澤二手古著淘寶", "淺草寺晴空塔今昔同框美照"],
+        dare: "在藥妝店抽籤者負責推購物車並幫大家拿免稅商品！"
+      },
+      {
+        id: "jp-kyoto",
+        name: "京都 Kyoto",
+        country: "日本",
+        region: "international",
+        duration: "medium",
+        avoidTags: ["crowd", "mountain"],
+        tags: ["#千年古都", "#抹茶控必訪", "#和服散策"],
+        image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "穿梭石板小巷與朱紅鳥居的侘寂時光",
+        foods: ["正統宇治抹茶百匯冰淇淋", "湯豆腐懷石料理", "先斗町鴨川川床炭火串燒"],
+        highlights: ["伏見稻荷大社千本鳥居晨走", "清水寺舞台遠眺京都盆地", "嵐山竹林幽徑伴隨清風聽竹音"],
+        dare: "抵達京都當天，抽籤者必須對著同伴用日文鞠躬道謝一整天！"
+      },
+      {
+        id: "jp-osaka",
+        name: "大阪 Osaka",
+        country: "日本",
+        region: "international",
+        duration: "medium",
+        avoidTags: ["crowd"],
+        tags: ["#關西廚房", "#環球影城", "#熱情笑聲"],
+        image: "https://images.unsplash.com/photo-1590559899731-a382839e5549?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "奔放熱情、笑聲與撲鼻香氣的天下廚房",
+        foods: ["道頓堀現煎柴魚跳舞章魚燒", "大阪燒搭酥脆串炸沾醬", "黑門市場現烤和牛與帝王蟹"],
+        highlights: ["跟道頓堀固力果跑跑人擺同姿勢合照", "日本環球影城直衝超級任天堂世界", "梅田空中庭園看億萬浪漫夜景"],
+        dare: "合照時抽籤者必須在固力果跑跑人前擺單腳跳躍姿勢維持 10 秒！"
+      },
+      {
+        id: "jp-fukuoka",
+        name: "福岡 Fukuoka",
+        country: "日本",
+        region: "international",
+        duration: "short",
+        avoidTags: [],
+        tags: ["#屋台小吃", "#豚骨拉麵發源", "#機票便宜"],
+        image: "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "散步就能逛完整座市中心的最舒適海港城",
+        foods: ["一蘭與一風堂原鄉濃厚豚骨拉麵", "中洲屋台明太子玉子燒", "博多牛腸鍋（牛雜鍋）"],
+        highlights: ["天神地下街與博多運河城掃貨", "中洲屋台街坐路邊攤喝生啤酒", "大濠公園湖畔星巴克悠哉散步"],
+        dare: "屋台吃消夜時，第一杯生啤酒或烏龍茶必須由抽籤者買單！"
+      },
+      {
+        id: "jp-sapporo",
+        name: "札幌 Sapporo",
+        country: "日本",
+        region: "international",
+        duration: "medium",
+        avoidTags: ["heat"],
+        tags: ["#雪國冰雕", "#三大螃蟹", "#成吉思汗烤羊"],
+        image: "https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "白雪、濃郁乳製品與海鮮天國之城",
+        foods: ["炭烤成吉思汗生羔羊肉", "札幌味噌拉麵加超厚牛油", "濃郁十勝牛奶霜淇淋與哈密瓜"],
+        highlights: ["大通公園看雪祭與電視塔", "狸小路商店街狂買北海道土產", "白色戀人觀光工廠化身甜點小學徒"],
+        dare: "在雪地拍照時，抽籤者必須躺在雪地上做雪天使！"
+      },
+      {
+        id: "jp-okinawa",
+        name: "沖繩那霸 Naha",
+        country: "日本",
+        region: "international",
+        duration: "short",
+        avoidTags: ["mountain"],
+        tags: ["#沖繩藍海", "#自駕兜風", "#美式海邊"],
+        image: "https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "機票只要 75 分鐘！最靠近台灣的碧海度假勝地",
+        foods: ["沖繩厚切苦瓜炒豆腐", "石垣牛排與阿古豬涮涮鍋", "Blue Seal 鹽金楚糕冰淇淋"],
+        highlights: ["自駕衝古宇利大橋看蒂芙尼藍海", "美之海水族館看黑潮之海巨鯨鯊", "美國村彩繪牆拍渡假大片"],
+        dare: "自駕旅程中，抽籤者負責當整路幫大家點歌控音響的 DJ！"
+      },
+      {
+        id: "kr-seoul",
+        name: "首爾 Seoul",
+        country: "韓國",
+        region: "international",
+        duration: "medium",
+        avoidTags: ["mountain", "heavy_flavor"],
+        tags: ["#KPOP流行", "#弘大逛街", "#咖啡廳巡禮"],
+        image: "https://images.unsplash.com/photo-1538485399081-7191377e8241?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "引領全球潮流的韓流時尚與咖啡文化心臟",
+        foods: ["廣藏市場綠豆煎餅與麻藥飯捲", "陳玉華一隻雞濃郁蒜香雞湯", "校村韓式炸雞配冰涼真露燒酒"],
+        highlights: ["穿韓服漫步景福宮古建築群", "聖水洞潮流工業風旗艦概念店", "弘大商圈看街頭舞者熱舞熱唱"],
+        dare: "吃韓式炸雞配啤酒時，抽籤者必須一口氣乾掉第一杯燒啤！"
+      },
+      {
+        id: "kr-busan",
+        name: "釜山 Busan",
+        country: "韓國",
+        region: "international",
+        duration: "short",
+        avoidTags: ["mountain"],
+        tags: ["#海雲台海景", "#甘川文化村", "#海鮮烤盲鰻"],
+        image: "https://images.unsplash.com/photo-1578637387939-43c525550085?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "依山傍海、人情味滿滿的韓國第一大港",
+        foods: ["西面豬肉湯飯附滿滿蝦醬韭菜", "札嘎其市場生章魚活吞體驗", "海雲台盲鰻與糖餅"],
+        highlights: ["海雲台天空膠囊列車看浪漫海景", "甘川洞文化村跟小王子並肩看海", "白淺灘文化村坐在懸崖咖啡館看夕陽"],
+        dare: "在札嘎其市場，抽籤者必須第一個挑戰吃吸盤還在動的生章魚！"
+      },
+      {
+        id: "kr-jeju",
+        name: "濟州島濟州 Jeju",
+        country: "韓國",
+        region: "international",
+        duration: "medium",
+        avoidTags: [],
+        tags: ["#黑豬肉燒烤", "#橘子咖啡", "#海女文化"],
+        image: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "火山地貌、浪漫橘子園與海風吹拂的渡假小島",
+        foods: ["厚切濟州黑豬肉五花炭烤", "海女現捕鮑魚海鮮拉麵", "滿滿維他命 C 的漢拏山橘子汁"],
+        highlights: ["城山日出峰眺望壯麗火山海景", "史努比花園打卡超萌打卡裝置", "涯月邑海邊彩虹階梯拍美照"],
+        dare: "吃黑豬肉烤肉時，抽籤者必須包一口塞滿大蒜辣椒的生菜包肉直接吞！"
+      },
+
+      // --- 東南亞熱門觀光名城 ---
+      {
+        id: "th-bangkok",
+        name: "曼谷 Bangkok",
+        country: "泰國",
+        region: "international",
+        duration: "medium",
+        avoidTags: ["heat", "heavy_flavor", "crowd"],
+        tags: ["#世界遊客之王", "#泰式按摩", "#平價米其林"],
+        image: "https://images.unsplash.com/photo-1508009603885-50cf7c579365?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "金碧輝煌佛寺與無限狂歡的熱帶都會",
+        foods: ["酸辣冬蔭功海鮮湯", "街頭現炒泰式炒金邊粉 Pad Thai", "芒果甜糯米飯淋濃郁椰奶"],
+        highlights: ["湄南河畔鄭王廟拍泰服唯美大片", "洽圖洽週末市集挑戰腿力極限", "高空天台酒吧微醺俯瞰曼谷無際夜景"],
+        dare: "抽籤者今天在泰國餐廳點菜時，必須用泰文向店員雙手合十說 Sawadee ka！"
+      },
+      {
+        id: "th-chiangmai",
+        name: "清邁 Chiang Mai",
+        country: "泰國",
+        region: "international",
+        duration: "medium",
+        avoidTags: ["heat"],
+        tags: ["#泰北慢活", "#森林咖啡", "#夜市手作"],
+        image: "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "被古城牆與翠綠山嵐包圍的文青棲息地",
+        foods: ["濃郁黃咖哩椰奶脆麵 Khao Soi", "泰北香腸拼盤搭配炸豬皮", "手沖單品泰北高山咖啡"],
+        highlights: ["尼曼路選物小店與特色咖啡館巡禮", "大象友善保護營幫大象洗澡擦泥巴", "週日夜市買滿滿手作刺繡與紀念品"],
+        dare: "在夜市買東西抽籤者必須幫所有同行夥伴開口殺價！"
+      },
+      {
+        id: "th-phuket",
+        name: "普吉島 Phuket",
+        country: "泰國",
+        region: "international",
+        duration: "medium",
+        avoidTags: ["heat"],
+        tags: ["#熱帶跳島", "#奢華海景飯店", "#夜生活酒吧"],
+        image: "https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "安達曼海上的渡假明珠與狂歡海岸",
+        foods: ["泰式青木瓜沙拉 Som Tum", "香脆泰式香蕉煎餅", "現撈龍蝦海鮮大餐"],
+        highlights: ["快艇出海皮皮島挑戰浮潛看熱帶魚", "芭東海灘體驗刺激水上拖曳傘", "普吉老城區漫步中葡復古老建築"],
+        dare: "在海灘上抽籤者必須親手替大家擦防曬乳！"
+      },
+      {
+        id: "sg-singapore",
+        name: "新加坡 Singapore",
+        country: "新加坡",
+        region: "international",
+        duration: "short",
+        avoidTags: ["heat"],
+        tags: ["#花園城市", "#熟食中心美食", "#未來感建築"],
+        image: "https://images.unsplash.com/photo-1525625293386-3f8f99389edd?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "現代科技與熱帶綠意共生的高效花園國度",
+        foods: ["珍寶辣椒螃蟹附油炸小饅頭", "天天海南雞飯香滑雞肉", "濃醇松發肉骨茶無限加湯"],
+        highlights: ["濱海灣金沙酒店前看夢幻水舞秀", "濱海灣花園擎天樹夜間燈光秀", "聖淘沙島環球影城暢玩整天"],
+        dare: "在金沙水舞秀前，抽籤者必須帶領大家一起跳一段搞笑舞蹈拍照！"
+      },
+      {
+        id: "my-kualalumpur",
+        name: "吉隆坡 Kuala Lumpur",
+        country: "馬來西亞",
+        region: "international",
+        duration: "medium",
+        avoidTags: ["heat", "heavy_flavor"],
+        tags: ["#雙子星塔", "#多元文化熔爐", "#超高CP值奢華酒店"],
+        image: "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "摩登天際線與多元種族色彩交織的南洋明珠",
+        foods: ["亞羅街沙嗲肉串配花生醬", "黃亞華炭烤魔鬼魚與雞翅", "肉骨茶與香濃白咖啡"],
+        highlights: ["國油雙峰塔 (Petronas) 前仰拍夜景", "黑風洞登上272級彩虹階梯朝聖", "巴比倫商場享受平價購物狂歡"],
+        dare: "在黑風洞前爬樓梯時，抽籤者必須全程走在最前面開路！"
+      },
+      {
+        id: "my-penang",
+        name: "檳城喬治市 George Town",
+        country: "馬來西亞",
+        region: "international",
+        duration: "short",
+        avoidTags: ["heat", "heavy_flavor"],
+        tags: ["#世界遺產老城", "#街頭壁畫", "#小吃之王"],
+        image: "https://images.unsplash.com/photo-1518684079-3c830dcef090?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "走兩步就有一家百年老字號的南洋美食天堂",
+        foods: ["大火翻炒鴨蛋炒粿條", "檳城亞參叻沙酸辣麵", "煎蕊冰 Cendol 淋滿香濃椰糖"],
+        highlights: ["租腳踏車在老街尋找姐弟共騎壁畫", "姓氏橋走入水上木樁傳統高腳聚落", "極樂寺俯瞰整座檳城島嶼景色"],
+        dare: "在檳城找到壁畫合照時，抽籤者必須模仿壁畫裡所有角色的動作！"
+      },
+      {
+        id: "vn-hanoi",
+        name: "河內 Hanoi",
+        country: "越南",
+        region: "international",
+        duration: "medium",
+        avoidTags: ["crowd"],
+        tags: ["#三十六古街", "#法式殖民風情", "#蛋咖啡"],
+        image: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "充滿摩拖車浪潮與悠然咖啡香的北越千年古城",
+        foods: ["越南生牛肉河粉 Pho", "奧巴馬吃過的河內烤肉米線 Bun Cha", "香濃綿密的特色生蛋黃咖啡"],
+        highlights: ["坐在火車街旁極限距離看火車擦身而過", "三十六古街搭人力三輪車慢遊", "還劍湖畔散步看當地阿公阿嬤下棋"],
+        dare: "火車在火車街開過來時，抽籤者必須錄下驚呼連連的限時動態！"
+      },
+      {
+        id: "vn-danang",
+        name: "峴港 Da Nang",
+        country: "越南",
+        region: "international",
+        duration: "short",
+        avoidTags: ["mountain"],
+        tags: ["#美溪沙灘", "#佛手金橋", "#會安古鎮傍晚"],
+        image: "https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "世界前六大美溪海灘與夢幻燈籠會安的交會點",
+        foods: ["峴港越式煎餅 Banh Xeo", "會安高樓麵與白玫瑰餃", "街頭法式麵包夾滿肝醬肉排"],
+        highlights: ["巴拿山打卡巨大人造佛手黃金橋", "美溪沙灘躺著喝椰子水吹海風", "包車到會安古鎮搭乘燈籠搖櫓船"],
+        dare: "在會安搭乘燈籠船時，抽籤者必須親手替每位夥伴放一盞祈福水燈！"
+      },
+      {
+        id: "id-bali",
+        name: "峇里島登巴薩 Bali Denpasar",
+        country: "印尼",
+        region: "international",
+        duration: "medium",
+        avoidTags: ["heat"],
+        tags: ["#海島Villa", "#烏布梯田", "#衝浪度假"],
+        image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "神明居住的千廟之島與熱帶心靈避風港",
+        foods: ["峇里島傳統芭蕉葉烤乳豬飯", "髒鴨餐香酥炸鴨佐辣醬", "沙嗲肉串拼盤配蝦餅"],
+        highlights: ["烏布高空叢林大鞦韆網美美拍", "金巴蘭海灘看落日餘暉吃海鮮燭光晚餐", "海神廟與斷崖情人崖打卡"],
+        dare: "入住 Villa 後，抽籤者必須第一個跳進游泳池炒熱氣氛！"
+      },
+      {
+        id: "ph-cebu",
+        name: "宿霧 Cebu",
+        country: "菲律賓",
+        region: "international",
+        duration: "medium",
+        avoidTags: ["heat"],
+        tags: ["#與鯨鯊共游", "#薄荷島眼鏡猴", "#跳島潛水"],
+        image: "https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "潛入深藍大海與巨大鯨鯊同遊的奇幻島嶼",
+        foods: ["宿霧超香脆烤乳豬 Lechon", "蒜頭炒飯搭配鐵板豬肉丁 Sisig", "芒果冰沙與焦糖卡士達布丁"],
+        highlights: ["奧斯陸與野生鯨鯊面對面共游震撼", "墨寶看千萬隻沙丁魚風暴在身邊旋轉", "薄荷島探訪全世界最小的可愛眼鏡猴"],
+        dare: "下水見到鯨鯊時，抽籤者必須游在最前面負責拍照錄影！"
+      },
+      {
+        id: "hk-hongkong",
+        name: "香港 Hong Kong",
+        country: "香港",
+        region: "international",
+        duration: "short",
+        avoidTags: ["crowd"],
+        tags: ["#維多利亞港夜景", "#港式飲茶茶餐廳", "#雙層叮叮車"],
+        image: "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "賽博朋克繁華高樓與熱騰騰蒸籠小點的傳奇香江",
+        foods: ["金黃酥皮冰火菠蘿油配凍檸茶", "米其林級鮮蝦燒賣與流沙包", "深井炭火燒鵝腿搭配酸梅醬"],
+        highlights: ["搭太平山復古纜車俯瞰維多利亞港", "坐上雙層叮叮車穿越港島喧囂街頭", "尖沙咀星光大道看每晚維港燈光秀"],
+        dare: "在茶餐廳點餐時，抽籤者必須用廣東話幫大家向店員大聲點餐！"
+      },
+      {
+        id: "mo-macau",
+        name: "澳門 Macau",
+        country: "澳門",
+        region: "international",
+        duration: "short",
+        avoidTags: ["crowd"],
+        tags: ["#東方拉斯維加斯", "#葡式蛋塔", "#大三巴牌坊"],
+        image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "璀璨金碧輝煌娛樂場與葡萄牙鵝卵石葡韻街區",
+        foods: ["瑪嘉烈/安德魯熱騰騰酥皮葡式蛋塔", "大利來記厚切豬扒包", "葡國雞飯配木糠布甸"],
+        highlights: ["大三巴牌坊前留影吃杏仁餅", "路氹城各大奢華賭場酒店威尼斯人巡禮", "登上澳門旅遊塔俯瞰珠江口全景"],
+        dare: "在賭場酒店門口，抽籤者必須擺一個像賭神的瀟灑進場姿勢拍短影片！"
+      },
+
+      // --- 歐洲殿堂級旅遊城市 (Euromonitor 前列) ---
+      {
+        id: "fr-paris",
+        name: "巴黎 Paris",
+        country: "法國",
+        region: "international",
+        duration: "long",
+        avoidTags: ["crowd", "long_transit"],
+        tags: ["#全球旅遊首獎", "#羅浮宮蒙娜麗莎", "#塞納河畔法式浪漫"],
+        image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "全球旅人公認的浪漫極致與藝術之都",
+        foods: ["現烤酥脆可頌配濃縮咖啡", "法式油封鴨腿佐香煎馬鈴薯", "Laduree 繽紛馬卡龍甜點"],
+        highlights: ["羅浮宮親眼目睹蒙娜麗莎神秘微笑", "傍晚在戰神廣場看艾菲爾鐵塔金色閃爍", "搭乘塞納河遊船穿越歷史名橋"],
+        dare: "在艾菲爾鐵塔前，抽籤者必須用深情的法文語調朗誦一句電影台詞！"
+      },
+      {
+        id: "es-madrid",
+        name: "馬德里 Madrid",
+        country: "西班牙",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit", "heat"],
+        tags: ["#太陽門廣場", "#Tapas小酒館", "#普拉多藝術館"],
+        image: "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "日不落熱情、皇宮花園與深夜 Tapas 狂歡之都",
+        foods: ["西班牙經典海鮮燉飯 Paella", "聖吉內斯現炸吉拿棒沾濃稠熱巧克力", "伊比利生火腿配 Sangria 水果酒"],
+        highlights: ["聖米格爾市場站著吃遍各式精緻 Tapas", "馬德里王宮感受歐洲帝國宮殿極致奢華", "麗池公園湖畔租小木船浪漫划漿"],
+        dare: "在小酒館喝 Sangria 時，抽籤者必須講出三個西班牙的熱情冷知識！"
+      },
+      {
+        id: "es-barcelona",
+        name: "巴塞隆納 Barcelona",
+        country: "西班牙",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit", "crowd"],
+        tags: ["#高第聖家堂", "#地中海沙灘", "#蘭布拉大道"],
+        image: "https://images.unsplash.com/photo-1583422409516-2895a77efded?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "高第超現實狂想建築與湛藍地中海微風",
+        foods: ["波蓋利亞市場現剖海膽生蠔", "加泰隆尼亞番茄擦麵包配蒜味蛋黃醬蝦", "烤大蔥沾特製堅果甜椒醬"],
+        highlights: ["走進聖家堂看彩色玻璃灑下的神聖彩虹光柱", "奎爾公園俯瞰巴塞隆納城市童話拼貼", "巴塞隆納海灘吹著地中海暖風曬太陽"],
+        dare: "仰望聖家堂時，抽籤者必須維持嘴巴張開驚嘆表情合照！"
+      },
+      {
+        id: "it-rome",
+        name: "羅馬 Rome",
+        country: "義大利",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit", "crowd"],
+        tags: ["#羅馬競技場", "#特雷維許願池", "#義式冰淇淋"],
+        image: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "走在兩千年的帝國遺跡街道上，處處皆是露天博物館",
+        foods: ["道地無鮮奶油的正宗羅馬培根蛋麵 Carbonara", "義式開心果 Gelato 冰淇淋", "薄脆羅馬窯烤披薩配生啤"],
+        highlights: ["站在羅馬圓形競技場中央感受古羅馬震撼", "特雷維許願池背對池水投下幸運硬幣", "造訪國中之國梵蒂岡聖彼得大教堂"],
+        dare: "在特雷維許願池前，抽籤者負責贊助在場所有人各一枚許願硬幣！"
+      },
+      {
+        id: "it-milan",
+        name: "米蘭 Milan",
+        country: "義大利",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit"],
+        tags: ["#世界時尚之都", "#米蘭大教堂", "#名牌精品走廊"],
+        image: "https://images.unsplash.com/photo-1513581166391-887a96ddeafd?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "白色哥德式尖塔奇蹟與全世界時尚潮流指針",
+        foods: ["黃金番紅花米蘭燉飯", "香酥米蘭炸小牛排", "傳統節慶麵包潘妮朵尼 Panettone"],
+        highlights: ["登頂米蘭大教堂大理石屋頂近看千座尖塔", "艾曼紐二世迴廊金色玻璃穹頂下優雅漫步", "欣賞達文西真跡名畫《最後的晚餐》"],
+        dare: "在名品街上，抽籤者必須幫每個人拍一張像時尚雜誌封面的全身街拍！"
+      },
+      {
+        id: "it-florence",
+        name: "佛羅倫斯 Florence",
+        country: "義大利",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit"],
+        tags: ["#文藝復興發源", "#聖母百花大教堂", "#丁骨大牛排"],
+        image: "https://images.unsplash.com/photo-1543429776-2782fc8e1acd?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "達文西與米開朗基羅走過、紅色磚瓦鋪成的藝術原鄉",
+        foods: ["重達一公斤的托斯卡尼炭烤丁骨牛排", "中央市場熱氣騰騰牛肚包", "義大利產區基安蒂 Chianti 紅酒"],
+        highlights: ["登上百花大教堂紅磚穹頂俯瞰翡冷翠橘色屋頂", "烏菲茲美術館親見波提切利《維納斯的誕生》", "米開朗基羅廣場看著整座古城被粉紅夕陽染紅"],
+        dare: "吃一公斤大牛排時，抽籤者必須第一個切下第一塊肉分給所有人！"
+      },
+      {
+        id: "it-venice",
+        name: "威尼斯 Venice",
+        country: "義大利",
+        region: "international",
+        duration: "medium",
+        avoidTags: ["long_transit", "crowd"],
+        tags: ["#水上之都", "#貢多拉鳳尾船", "#聖馬可廣場"],
+        image: "https://images.unsplash.com/photo-1514890547357-a9ee288728e0?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "沒有汽車噪音、只有海水拍打古老石梯的水上迷宮",
+        foods: ["濃黑甘甜墨魚汁義大利麵", "威尼斯小吃 Cicchetti 佐白葡萄酒", "發源於當地的正統提拉米蘇"],
+        highlights: ["乘坐黑色貢多拉划過嘆息橋下", "聖馬可廣場聽歐洲最古老花神咖啡館露天樂隊演奏", "搭乘水上巴士造訪布拉諾彩色島"],
+        dare: "在貢多拉船上，抽籤者必須唱出一段義大利民謠或抒情歌！"
+      },
+      {
+        id: "gb-london",
+        name: "倫敦 London",
+        country: "英國",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit", "crowd"],
+        tags: ["#大笨鐘泰晤士河", "#免費大英博物館", "#紅色雙層巴士"],
+        image: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "日不落帝國典雅古蹟與前衛多元文化並存的世外都會",
+        foods: ["香酥炸鱈魚配粗薯條青豆泥", "英式三層架正統下午茶佐司康抹奶油", "週日傳統烤牛肉約克夏布丁"],
+        highlights: ["大英博物館探索羅塞塔石碑與古埃及木乃伊", "泰晤士河畔拍倫敦眼、大笨鐘與倫敦塔橋", "柯芬園看街頭藝人表演或欣賞西區音樂劇"],
+        dare: "下午茶時，抽籤者必須用標準英國紳士/淑女腔幫大家倒茶！"
+      },
+      {
+        id: "nl-amsterdam",
+        name: "阿姆斯特丹 Amsterdam",
+        country: "荷蘭",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit"],
+        tags: ["#運河單車王國", "#梵谷博物館", "#自由寬容之都"],
+        image: "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "數百座山形牆倒映運河、自行車比人還多的浪漫自由城",
+        foods: ["荷蘭現烤焦糖煎餅 Stroopwafel", "新鮮醃鯡魚捏尾巴仰頭一口吞", "沾上滿滿美乃滋的荷蘭粗炸薯條"],
+        highlights: ["租一台自行車像當地人一樣穿梭運河橋樑", "梵谷博物館親睹《向日葵》與《自畫像》", "乘船在玻璃屋頂運河遊船中穿過歷史水道"],
+        dare: "在街頭買醃鯡魚時，抽籤者必須挑戰傳統吃法『捏著魚尾巴整尾吞』！"
+      },
+      {
+        id: "de-berlin",
+        name: "柏林 Berlin",
+        country: "德國",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit"],
+        tags: ["#柏林圍牆塗鴉", "#世界電音首都", "#歷史反思與自由"],
+        image: "https://images.unsplash.com/photo-1560969184-10fe8719e047?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "酷炫叛逆、充滿歷史傷痕卻又無比自由的先鋒城市",
+        foods: ["柏林咖哩香腸 Currywurst 搭配薯條", "街頭土耳其旋轉烤肉堡 Doner Kebab", "大杯德式生啤酒配巴伐利亞脆皮豬腳"],
+        highlights: ["在東邊畫廊跟柏林圍牆上的「兄弟之吻」塗鴉合照", "參觀莊嚴壯麗的布蘭登堡門與國會大廈玻璃圓頂", "探訪博物館島珍藏的古希臘巴比倫文明真品"],
+        dare: "抵達柏林當晚，抽籤者負責替所有人點第一輪正宗德國大杯生啤！"
+      },
+      {
+        id: "de-munich",
+        name: "慕尼黑 Munich",
+        country: "德國",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit"],
+        tags: ["#十月啤酒節", "#新天鵝堡門戶", "#BMW總部"],
+        image: "https://images.unsplash.com/photo-1595867818082-083862f3d630?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "阿爾卑斯山腳下、大口乾啤酒配香脆豬腳的巴伐利亞首都",
+        foods: ["慕尼黑白香腸 Weisswurst 配甜芥末醬", "脆皮德式大烤豬腳 Schweinshaxe", "新鮮出爐扭結麵包 Bretzel"],
+        highlights: ["瑪利恩廣場新市政廳看歷史人偶咕咕鐘報時", "走進百年皇家啤酒屋 HB 享受現場銅管樂伴奏", "搭火車一日遊童話世界原型新天鵝堡"],
+        dare: "在啤酒屋裡，抽籤者必須向全場高舉一公升酒杯喊出德文乾杯 Prost！"
+      },
+      {
+        id: "cz-prague",
+        name: "布拉格 Prague",
+        country: "捷克",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit"],
+        tags: ["#百塔之城", "#查理大橋晨曦", "#平價中歐童話"],
+        image: "https://images.unsplash.com/photo-1541849546-216549ae216d?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "紅瓦屋頂覆蓋、宛如卡夫卡筆下走出的露天金色童話",
+        foods: ["捷克肉汁燉牛肉佐麵包糰子 Gulash", "路邊現烤肉桂煙囪捲 Trdelnik", "比水還便宜的世界頂級皮爾森生啤酒"],
+        highlights: ["清晨日出時無人的查理大橋上看雕像雲霧", "布拉格城堡看聖維特大教堂宏偉彩繪玻璃", "舊城廣場每逢整點仰望天文鐘機械旋轉表演"],
+        dare: "在查理大橋上，抽籤者必須親吻同伴或自己的手背拍一張文青合照！"
+      },
+      {
+        id: "at-vienna",
+        name: "維也納 Vienna",
+        country: "奧地利",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit"],
+        tags: ["#世界音樂之都", "#哈布斯堡宮殿", "#沙河蛋糕百年咖啡"],
+        image: "https://images.unsplash.com/photo-1516550893923-42d28e5677af?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "莫札特與貝多芬的旋律迴盪、金碧輝煌的古典優雅首都",
+        foods: ["薄如紙片又香脆的維也納炸牛排 Schnitzel", "沙河飯店正宗沙河巧克力蛋糕 Sacher-Torte", "維也納米朗琪咖啡 Melange 搭配鮮奶油"],
+        highlights: ["熊布朗宮 (美泉宮) 參觀茜茜公主的巴洛克寢宮", "美景宮親睹克林姆特代表作《吻》的金色光芒", "走入中央咖啡館在華麗水晶燈下享受優雅下午茶"],
+        dare: "在咖啡館點餐時，抽籤者必須哼唱一段貝多芬第九交響曲旋律！"
+      },
+      {
+        id: "hu-budapest",
+        name: "布達佩斯 Budapest",
+        country: "匈牙利",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit"],
+        tags: ["#多瑙河珍珠", "#國會大廈夜景", "#塞切尼百年溫泉"],
+        image: "https://images.unsplash.com/photo-1509299349698-dd22323b5963?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "被多瑙河一分為二、夜晚金光閃爍的多瑙河真正珍珠",
+        foods: ["匈牙利紅椒牛肉濃湯 Goulash", "酥脆炸麵餅 Langos 鋪滿酸奶起司", "公牛血紅酒搭配烤肉"],
+        highlights: ["漁人堡回廊眺望金色雄偉匈牙利國會大廈", "塞切尼溫泉池邊泡湯邊看阿伯在水上下西洋棋", "廢墟酒吧 Szimpla Kert 體驗超狂改裝夜生活"],
+        dare: "在多瑙河畔拍夜景時，抽籤者必須背起一名旅伴拍一張壯舉照！"
+      },
+      {
+        id: "pt-lisbon",
+        name: "里斯本 Lisbon",
+        country: "葡萄牙",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit", "mountain"],
+        tags: ["#七丘之城", "#黃色28號復古電車", "#百年葡撻原祖"],
+        image: "https://images.unsplash.com/photo-1508672019048-805b876b67e2?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "大西洋暖陽照耀、黃色復古電車穿梭起伏坡道的熱情城",
+        foods: ["貝倫區百年創始老店熱騰騰撒肉桂粉葡式蛋撻", "葡萄牙國菜醃鱈魚馬鈴薯 Bacalhau", "海鮮大銅鍋燉飯搭配綠酒"],
+        highlights: ["搭乘復古黃色 28 號電車在老城窄巷驚險爬坡", "貝倫塔與發現者紀念碑遙望大航海時代汪洋", "聖胡斯塔升降機俯瞰整片紅色磚瓦與特茹河景"],
+        dare: "搭乘 28 號電車時，抽籤者必須全程站在門口負責扶好所有人！"
+      },
+      {
+        id: "ch-zurich",
+        name: "蘇黎世 Zurich",
+        country: "瑞士",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit"],
+        tags: ["#阿爾卑斯湖畔", "#瑞士頂級巧克力", "#全球最高生活品質"],
+        image: "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "清澈如鏡的蘇黎世湖與終年積雪阿爾卑斯群山環抱的奢華之都",
+        foods: ["蘇黎世蘑菇白醬煨小牛肉配香脆薯餅", "濃郁起司火鍋 Fondue 沾麵包", "瑞士蓮與手工生巧克力"],
+        highlights: ["蘇黎世湖畔看潔白天鵝悠游散步", "林登霍夫山丘俯瞰利馬特河與老城雙塔", "班霍夫大街櫥窗欣賞世界頂級製錶工藝"],
+        dare: "吃起司火鍋時，抽籤者的麵包如果不小心掉進鍋子裡就要罰說真心話！"
+      },
+
+      // --- 中東與美非大洋洲標竿城市 (世界頂級旅客人次) ---
+      {
+        id: "ae-dubai",
+        name: "杜拜 Dubai",
+        country: "阿聯酋",
+        region: "international",
+        duration: "medium",
+        avoidTags: ["long_transit", "heat"],
+        tags: ["#世界最高哈里發塔", "#沙漠衝沙狂飆", "#奢華土豪國度"],
+        image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "在金色荒漠中拔地而起的未來主義奇蹟之都",
+        foods: ["中東烤肉捲餅 Shawarma", "阿拉伯香料烤全羊飯 Mandi", "包著核桃的蜜棗乾椰棗搭配阿拉伯豆蔻咖啡"],
+        highlights: ["登頂 828 公尺世界第一高樓哈里發塔俯瞰地平線", "搭乘四驅越野車在紅色沙漠中玩極速衝沙與滑沙", "杜拜購物中心看全球最大室內水族館與音樂水舞"],
+        dare: "在哈里發塔前拍照時，抽籤者必須躺在地上才能把塔頂跟同伴一次拍進去！"
+      },
+      {
+        id: "tr-istanbul",
+        name: "伊斯坦堡 Istanbul",
+        country: "土耳其",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit", "crowd"],
+        tags: ["#橫跨歐亞兩洲", "#聖索菲亞大教堂", "#大巴札尋寶"],
+        image: "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "博斯普魯斯海峽劃開兩洲，承載羅馬與鄂圖曼千年榮耀",
+        foods: ["正統土耳其炭烤旋轉羊肉 Kebab", "牽絲拉超長的土耳其手工冰淇淋", "甜到心坎裡的果仁蜜餅 Baklava 配紅茶"],
+        highlights: ["聖索菲亞大教堂仰望懸掛千年的金色圓頂與伊斯蘭圓牌", "有 4000 家店鋪的有頂大市集 (大巴札) 練習殺價", "搭乘渡輪在博斯普魯斯海峽上悠遊於歐亞板塊之間"],
+        dare: "買土耳其冰淇淋時，抽籤者必須任由老闆用鐵棒捉弄 30 秒不能生氣！"
+      },
+      {
+        id: "us-newyork",
+        name: "紐約 New York City",
+        country: "美國",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit", "crowd"],
+        tags: ["#大蘋果世界十字路口", "#百老匯音樂劇", "#中央公園漫步"],
+        image: "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "永不入眠的世界心臟，承載全世界所有夢想與野心",
+        foods: ["紐約街頭一美元巨無霸折疊披薩", "正宗煙燻五花牛肉三明治 Pastrami on Rye", "外脆內煙韌紐約貝果抹滿重乳酪抹醬"],
+        highlights: ["時代廣場沉浸在全天候震撼巨型霓虹螢幕下", "中央公園租腳踏車或躺在草坪看摩天大樓天際線", "帝國大廈或洛克斐勒中心觀景台看曼哈頓無敵落日"],
+        dare: "在時代廣場中央，抽籤者必須對著天空大喊一聲「Welcome to New York！」"
+      },
+      {
+        id: "us-losangeles",
+        name: "洛杉磯 Los Angeles",
+        country: "美國",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit"],
+        tags: ["#好萊塢星光大道", "#加州暖陽陽光", "#環球影城直擊"],
+        image: "https://images.unsplash.com/photo-1580655653885-65763b2597d0?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "永恆的加州棕櫚樹、金色海灘與全球造夢電影之都",
+        foods: ["加州傳奇 In-N-Out 雙層起司漢堡與秘密動物風醬料", "街頭墨西哥街頭塔可 Taco 配新鮮酪梨醬", "威尼斯海灘現打繽紛巴西莓果碗 Acai Bowl"],
+        highlights: ["格里斐斯天文台眺望洛杉磯全景與好萊塢招牌", "聖塔莫尼卡海灘碼頭搭乘日落摩天輪", "好萊塢星光大道尋找自己最崇拜巨星的星星"],
+        dare: "在 In-N-Out 點餐時，抽籤者必須替所有人背出秘密菜單點出隱藏版料理！"
+      },
+      {
+        id: "us-sanfrancisco",
+        name: "舊金山 San Francisco",
+        country: "美國",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit", "mountain"],
+        tags: ["#金門大橋海霧", "#漁人碼頭海獅", "#叮叮噹噹噹噹纜車"],
+        image: "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "斜坡上的維多利亞彩繪女士與大紅金門大橋交織的海灣名城",
+        foods: ["漁人碼頭酸麵包碗盛裝濃郁巧達海鮮蛤蜊濃湯", "鄧金斯巨無霸清蒸大黃道蟹", "吉拉德里廣場純濃香濃熱巧克力聖代"],
+        highlights: ["騎腳踏車親自橫跨紅色金門大橋感受太平洋海風", "搭乘古董木造叮噹纜車攀爬極陡舊金山斜坡", "九曲花街挑戰連續髮夾彎看繡球花開"],
+        dare: "搭乘叮噹纜車時，抽籤者必須掛在車廂外側欄杆上當帥氣車長！"
+      },
+      {
+        id: "au-sydney",
+        name: "雪梨 Sydney",
+        country: "澳洲",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit"],
+        tags: ["#雪梨歌劇院帆船", "#邦代海灘衝浪", "#藍山國家公園"],
+        image: "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "壯闊海港風光、白色貝殼歌劇院與無拘無束戶外生活",
+        foods: ["澳洲草飼安格斯頂級牛排搭配肉汁", "肉批 Meat Pie 淋上香濃番茄醬", "熱門打卡甜點西瓜草莓蛋糕配澳白咖啡 Flat White"],
+        highlights: ["漫步環形碼頭近距離仰拍雪梨歌劇院幾何貝殼", "邦代海灘到庫吉海灘絕美懸崖沿海步道散步", "攀登雪梨港灣大橋俯瞰全世界最美天然良港"],
+        dare: "在邦代海灘邊喝咖啡時，抽籤者必須模仿袋鼠跳 5 下才能坐下！"
+      },
+      {
+        id: "au-melbourne",
+        name: "墨爾本 Melbourne",
+        country: "澳洲",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit"],
+        tags: ["#世界咖啡首都", "#大洋路十二使徒岩", "#街頭塗鴉巷"],
+        image: "https://images.unsplash.com/photo-1514395462725-fb4566210144?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "連呼吸都飄著頂級咖啡香氣與濃烈文藝氣息的南半球文化之都",
+        foods: ["世界評比第一的澳洲國民 Flat White 澳白咖啡", "維多利亞女王市場現炸熱果醬甜甜圈", "墨爾本風早午餐班尼迪克蛋佐牛油果酪梨泥"],
+        highlights: ["自駕大洋路親眼目睹浩瀚印度洋中的十二使徒岩海蝕柱", "霍西爾巷 (Hosier Lane) 欣賞世界級街頭塗鴉大作", "在維多利亞州立圖書館八角穹頂閱覽室靜靜感受書香"],
+        dare: "在墨爾本每一家咖啡館，抽籤者都要負責品嚐一口盲測豆子產地！"
+      },
+      {
+        id: "eg-cairo",
+        name: "開羅 Cairo",
+        country: "埃及",
+        region: "international",
+        duration: "long",
+        avoidTags: ["long_transit", "heat", "crowd", "heavy_flavor"],
+        tags: ["#吉薩金字塔群", "#人面獅身像奇蹟", "#尼羅河千年古文明"],
+        image: "https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?auto=format&fit=crop&w=1000&q=80",
+        subtitle: "五千年時光凝固在沙漠之中，世界七大奇蹟僅存的活化石",
+        foods: ["埃及國民飯 Koshari（混米飯通心粉扁豆炸洋蔥淋醋蒜醬）", "中東蠶豆泥 Falafel 炸丸子三明治", "濃甜庫納法甜點配鮮薄荷茶"],
+        highlights: ["親自摸到吉薩大金字塔數噸重的巨石古磚", "在人面獅身像前拍借位親吻古蹟經典合照", "大埃及博物館驚嘆圖坦卡門純金面具的耀目光芒"],
+        dare: "在金字塔前合照時，抽籤者必須擺出法老木乃伊雙手交叉於胸前的姿勢！"
+      }
+    ];
+
+    // =========================================================================
+    // 2. 狀態管理
+    // =========================================================================
+    let remainingChances = 3;
+    let excludedCityIds = [];
+    let currentDrawnCity = null;
+    let isRolling = false;
+
+    // 篩選器狀態
+    const filterState = {
+      range: 'any',          // any | domestic | international
+      duration: 'medium',    // short | medium | long
+      avoidTags: []          // array of avoid tags
+    };
+
+    // DOM 元素引用
+    const totalCityCounterEl = document.getElementById('totalCityCounter');
+    const matchPoolCountEl = document.getElementById('matchPoolCount');
+    const suitcaseWrapper = document.getElementById('suitcaseWrapper');
+    const suitcaseBody = document.getElementById('suitcaseBody');
+    const suitcaseHint = document.getElementById('suitcaseHint');
+    const drawBtn = document.getElementById('drawBtn');
+    const drawBtnText = document.getElementById('drawBtnText');
+    const rerollBtn = document.getElementById('rerollBtn');
+    const rerollCounterText = document.getElementById('rerollCounterText');
+    const chanceCounterText = document.getElementById('chanceCounterText');
+    const exhaustedTip = document.getElementById('exhaustedTip');
+    const resultCard = document.getElementById('resultCard');
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toastMsg');
+
+    // 結果卡片內容元素
+    const resImage = document.getElementById('resImage');
+    const resCityName = document.getElementById('resCityName');
+    const resSubtitle = document.getElementById('resSubtitle');
+    const resRegionBadge = document.getElementById('resRegionBadge');
+    const resDurationBadge = document.getElementById('resDurationBadge');
+    const resTags = document.getElementById('resTags');
+    const resFoods = document.getElementById('resFoods');
+    const resHighlights = document.getElementById('resHighlights');
+    const resPartyDare = document.getElementById('resPartyDare');
+    const copyShareBtn = document.getElementById('copyShareBtn');
+    const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+
+    // 格式化顯示總收錄城市數
+    totalCityCounterEl.innerText = CITIES_DATABASE.length;
+
+    // =========================================================================
+    // 3. 篩選與母體池計算核心邏輯
+    // =========================================================================
+    function getAvailableCities() {
+      return CITIES_DATABASE.filter(city => {
+        // 排除當前輪次已抽過的地點
+        if (excludedCityIds.includes(city.id)) {
+          return false;
+        }
+
+        // 範圍過濾
+        if (filterState.range !== 'any') {
+          if (city.region !== filterState.range) return false;
+        }
+
+        // 天數過濾（國內輕旅行若選 medium/long 或國外若選 medium/long 做合理匹配容許度）
+        if (filterState.duration === 'short' && city.duration !== 'short') {
+          return false;
+        }
+        if (filterState.duration === 'long' && city.duration === 'short') {
+          return false;
+        }
+
+        // 避雷強制剔除：如果勾選的避雷項目命中此城市的特徵，則強制踢除
+        for (const avoid of filterState.avoidTags) {
+          if (city.avoidTags && city.avoidTags.includes(avoid)) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+    }
+
+    function updatePoolCount() {
+      const pool = getAvailableCities();
+      matchPoolCountEl.innerText = pool.length;
+      
+      if (pool.length === 0) {
+        matchPoolCountEl.classList.add('text-rose-400');
+        matchPoolCountEl.classList.remove('text-brand-400');
+        drawBtn.disabled = true;
+        drawBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        drawBtnText.innerText = "沒有符合條件的城市 (請放寬條件)";
+      } else {
+        matchPoolCountEl.classList.remove('text-rose-400');
+        matchPoolCountEl.classList.add('text-brand-400');
+        if (remainingChances > 0 && !isRolling) {
+          drawBtn.disabled = false;
+          drawBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          drawBtnText.innerText = currentDrawnCity ? "重新搖獎 (Spin)" : "命運開箱 (Spin DestiPack)";
+        }
+      }
+    }
+
+    // =========================================================================
+    // 4. 音效系統 (純 Web Audio API 振盪器合成，無需任何外部 mp3 依賴)
+    // =========================================================================
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      return audioCtx;
+    }
+
+    // 行李箱劇烈震動音效
+    function playShakeSound() {
+      try {
+        const ctx = getAudioContext();
+        if (ctx.state === 'suspended') ctx.resume();
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(90, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(140, ctx.currentTime + 1.2);
+
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 1.2);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 1.2);
+      } catch (e) {
+        // 部分環境靜音防呆
+      }
+    }
+
+    // 彈簧金屬解鎖與開箱歡呼音效
+    function playOpenSound() {
+      try {
+        const ctx = getAudioContext();
+        if (ctx.state === 'suspended') ctx.resume();
+
+        // 咔噠卡扣解開聲
+        const oscClick = ctx.createOscillator();
+        const gainClick = ctx.createGain();
+        oscClick.type = 'square';
+        oscClick.frequency.setValueAtTime(800, ctx.currentTime);
+        gainClick.gain.setValueAtTime(0.15, ctx.currentTime);
+        gainClick.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+        oscClick.connect(gainClick);
+        gainClick.connect(ctx.destination);
+        oscClick.start();
+        oscClick.stop(ctx.currentTime + 0.08);
+
+        // 喜慶升調和弦音
+        const freqs = [392, 523.25, 659.25, 783.99, 1046.50];
+        freqs.forEach((f, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, ctx.currentTime + 0.08 + idx * 0.05);
+          gain.gain.setValueAtTime(0.06, ctx.currentTime + 0.08 + idx * 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5 + idx * 0.05);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + 0.08 + idx * 0.05);
+          osc.stop(ctx.currentTime + 0.5 + idx * 0.05);
+        });
+      } catch (e) {}
+    }
+
+    // =========================================================================
+    // 5. 抽籤開箱主流程與動畫
+    // =========================================================================
+    function triggerDraw() {
+      if (isRolling) return;
+      if (remainingChances <= 0) return;
+
+      const pool = getAvailableCities();
+      if (pool.length === 0) {
+        showToast("⚠️ 目前沒有符合條件的城市，請減少避雷開關或放寬天數範圍！");
+        return;
+      }
+
+      isRolling = true;
+      drawBtn.disabled = true;
+      rerollBtn.disabled = true;
+      suitcaseHint.innerText = "命運震盪中...";
+
+      // 1. 行李箱劇烈震盪動效 (1.2秒)
+      suitcaseBody.classList.remove('animate-float-idle');
+      suitcaseBody.classList.add('animate-shake-hard');
+      playShakeSound();
+
+      setTimeout(() => {
+        // 2. 隨機選出一個城市
+        const randomIndex = Math.floor(Math.random() * pool.length);
+        const selectedCity = pool[randomIndex];
+
+        // 記錄並扣減重抽次數
+        currentDrawnCity = selectedCity;
+        excludedCityIds.push(selectedCity.id);
+        remainingChances--;
+
+        // 3. 停止晃動並觸發開蓋音效與彩色拉砲彩帶
+        suitcaseBody.classList.remove('animate-shake-hard');
+        suitcaseBody.classList.add('animate-float-idle');
+        playOpenSound();
+
+        // Canvas Confetti 慶祝拉砲
+        if (typeof confetti === 'function') {
+          confetti({
+            particleCount: 80,
+            spread: 70,
+            origin: { y: 0.6 }
+          });
+        }
+
+        // 4. 渲染結果卡片
+        renderResult(selectedCity);
+
+        // 5. 更新介面次數與按鈕狀態
+        updateChanceStatus();
+
+        isRolling = false;
+        suitcaseHint.innerText = "已開出：" + selectedCity.name.split(' ')[0];
+
+        // 滾動畫面至卡片
+        resultCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 1200);
+    }
+
+    function renderResult(city) {
+      // 填入大圖與文字
+      resImage.src = city.image;
+      resImage.alt = city.name;
+      resCityName.innerText = city.name;
+      resSubtitle.innerText = city.subtitle;
+      
+      resRegionBadge.innerText = city.region === 'domestic' ? '🇹🇼 台灣縣市' : '✈️ 全球國際都會';
+      
+      let durationLabel = "3-5天 連假首選";
+      if (city.duration === 'short') durationLabel = "1-2天 週末快閃";
+      if (city.duration === 'long') durationLabel = "6天以上 深度放空";
+      resDurationBadge.innerText = durationLabel;
+
+      // 標籤 Badges
+      resTags.innerHTML = '';
+      city.tags.forEach(tag => {
+        const span = document.createElement('span');
+        span.className = "text-[11px] font-semibold px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-amber-300";
+        span.innerText = tag;
+        resTags.appendChild(span);
+      });
+
+      // 必吃美食
+      resFoods.innerHTML = '';
+      city.foods.forEach(f => {
+        const li = document.createElement('li');
+        li.innerText = f;
+        resFoods.appendChild(li);
+      });
+
+      // 核心亮點
+      resHighlights.innerHTML = '';
+      city.highlights.forEach(h => {
+        const li = document.createElement('li');
+        li.innerText = h;
+        resHighlights.appendChild(li);
+      });
+
+      // 專屬懲罰/任務
+      resPartyDare.innerText = city.dare;
+
+      // 展現卡片
+      resultCard.classList.remove('hidden');
+    }
+
+    function updateChanceStatus() {
+      chanceCounterText.innerText = `${remainingChances} / 3`;
+      rerollCounterText.innerText = remainingChances;
+
+      if (remainingChances <= 0) {
+        rerollBtn.disabled = true;
+        drawBtn.disabled = true;
+        drawBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        drawBtnText.innerText = "已無重抽次數 (命運已定)";
+        exhaustedTip.classList.remove('hidden');
+      } else {
+        rerollBtn.disabled = false;
+        drawBtn.disabled = false;
+        exhaustedTip.classList.add('hidden');
+      }
+    }
+
+    // =========================================================================
+    // 6. 複製行程文字分享功能
+    // =========================================================================
+    function copyShareResult() {
+      if (!currentDrawnCity) return;
+      
+      const shareText = `🧳【命運行李箱 DestiPack】我們的下一站開出來了！\n\n` +
+        `📍 目的地：${currentDrawnCity.name}（${currentDrawnCity.country}）\n` +
+        `✨ 特色：${currentDrawnCity.subtitle}\n` +
+        `🍜 必吃美食：${currentDrawnCity.foods.join('、')}\n` +
+        `🎯 必玩亮點：${currentDrawnCity.highlights.join('、')}\n` +
+        `🎲 現場任務：${currentDrawnCity.dare}\n\n` +
+        `機票訂起來，不要再猶豫了！✈️`;
+
+      navigator.clipboard.writeText(shareText).then(() => {
+        showToast("已成功複製城市行程到剪貼簿，快分享給旅伴！");
+      }).catch(() => {
+        showToast("複製失敗，請手動截圖保存！");
+      });
+    }
+
+    function showToast(msg) {
+      toastMsg.innerText = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+
+    // =========================================================================
+    // 7. 事件監聽綁定
+    // =========================================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      // 初始化 Lucide 圖標
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+
+      // 範圍單選切換
+      const rangeBtns = document.querySelectorAll('.filter-range-btn');
+      rangeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          rangeBtns.forEach(b => {
+            b.classList.remove('active-range', 'bg-brand-500/20', 'border-brand-500/60', 'text-brand-300');
+            b.classList.add('border-slate-800', 'text-slate-400');
+          });
+          btn.classList.add('active-range', 'bg-brand-500/20', 'border-brand-500/60', 'text-brand-300');
+          btn.classList.remove('border-slate-800', 'text-slate-400');
+          filterState.range = btn.dataset.range;
+          updatePoolCount();
+        });
+      });
+      // 預設樣式套用
+      document.querySelector('[data-range="any"]').click();
+
+      // 天數單選切換
+      const durationBtns = document.querySelectorAll('.filter-duration-btn');
+      durationBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          durationBtns.forEach(b => {
+            b.classList.remove('active-duration', 'bg-brand-500/20', 'border-brand-500/60', 'text-brand-300');
+            b.classList.add('border-slate-800', 'text-slate-400');
+          });
+          btn.classList.add('active-duration', 'bg-brand-500/20', 'border-brand-500/60', 'text-brand-300');
+          btn.classList.remove('border-slate-800', 'text-slate-400');
+          filterState.duration = btn.dataset.duration;
+          updatePoolCount();
+        });
+      });
+      document.querySelector('[data-duration="medium"]').click();
+
+      // 避雷 Checkbox 多選監聽
+      const avoidCheckboxes = document.querySelectorAll('.avoid-tag-checkbox');
+      avoidCheckboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
+          filterState.avoidTags = Array.from(avoidCheckboxes)
+            .filter(c => c.checked)
+            .map(c => c.value);
+          updatePoolCount();
+        });
+      });
+
+      // 重設篩選器
+      resetFiltersBtn.addEventListener('click', () => {
+        document.querySelector('[data-range="any"]').click();
+        document.querySelector('[data-duration="medium"]').click();
+        avoidCheckboxes.forEach(c => c.checked = false);
+        filterState.avoidTags = [];
+        excludedCityIds = [];
+        remainingChances = 3;
+        currentDrawnCity = null;
+        updateChanceStatus();
+        updatePoolCount();
+        resultCard.classList.add('hidden');
+        suitcaseHint.innerText = "點擊開啟命運";
+        showToast("已重置所有條件與次數！");
+      });
+
+      // 行李箱點擊開箱
+      suitcaseWrapper.addEventListener('click', triggerDraw);
+      drawBtn.addEventListener('click', triggerDraw);
+      rerollBtn.addEventListener('click', triggerDraw);
+
+      // 分享按鈕
+      copyShareBtn.addEventListener('click', copyShareResult);
+
+      // 初始化母體池數量
+      updatePoolCount();
+    });
+  </script>
+</body>
+</html>
